@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cellpose Cell Coverage Analyzer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            background: #eef0ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e0e4ff;
+            border-color: #667eea;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .parameters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .param-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .visualization {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .visualization img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .error {
+            background: #ff5252;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .parameters {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cellpose Cell Coverage Analyzer</h1>
+        <p class="subtitle">Upload a microscopy image to analyze cell coverage</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <p><strong>Click to upload</strong> or drag and drop</p>
+            <p style="font-size: 12px; color: #888; margin-top: 10px;">Supported formats: JPG, PNG, TIFF (max 16MB)</p>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        </div>
+
+        <div id="fileName" style="text-align: center; margin-top: 15px; color: #667eea; font-weight: 600;"></div>
+
+        <div class="parameters">
+            <div class="param-group">
+                <label for="diameter">Cell Diameter (pixels)</label>
+                <input type="number" id="diameter" value="30" min="5" max="500">
+                <span class="help-text">Typical cell diameter in pixels (e.g., 30 for standard cells)</span>
+            </div>
+            <div class="param-group">
+                <label for="batchSize">Batch Size</label>
+                <input type="number" id="batchSize" value="4" min="1" max="16">
+                <span class="help-text">Processing batch size (lower = less memory, slower)</span>
+            </div>
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn" disabled>Upload an Image to Analyze</button>
+
+        <div class="error" id="errorMsg"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #666;">Processing image... This may take up to 60 seconds</p>
+        </div>
+
+        <div class="results" id="results">
+            <h2 style="margin-bottom: 20px; color: #333;">Analysis Results</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="coverageValue">-</div>
+                    <div class="stat-label">Coverage %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="cellsValue">-</div>
+                    <div class="stat-label">Cells Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pixelsValue">-</div>
+                    <div class="stat-label">Cell Pixels</div>
+                </div>
+            </div>
+
+            <div class="visualization">
+                <h3 style="margin-bottom: 15px; color: #333;">Cell Segmentation Overlay</h3>
+                <img id="overlayImage" src="" alt="Segmentation visualization">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorMsg = document.getElementById('errorMsg');
+
+        let selectedFile = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                fileName.textContent = `Selected: ${selectedFile.name}`;
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Image';
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length > 0) {
+                selectedFile = e.dataTransfer.files[0];
+                fileInput.files = e.dataTransfer.files;
+                fileName.textContent = `Selected: ${selectedFile.name}`;
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Image';
+            }
+        });
+
+        // Analyze button
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Hide previous results and errors
+            results.classList.remove('active');
+            errorMsg.classList.remove('active');
+
+            // Show loading
+            loading.classList.add('active');
+            analyzeBtn.disabled = true;
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('diameter', document.getElementById('diameter').value);
+            formData.append('batch_size', document.getElementById('batchSize').value);
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                // Display results
+                document.getElementById('coverageValue').textContent = data.coverage_percent + '%';
+                document.getElementById('cellsValue').textContent = data.num_cells.toLocaleString();
+                document.getElementById('pixelsValue').textContent = data.cell_pixels.toLocaleString();
+                document.getElementById('overlayImage').src = 'data:image/png;base64,' + data.overlay_image;
+
+                results.classList.add('active');
+
+            } catch (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.classList.add('active');
+            } finally {
+                loading.classList.remove('active');
+                analyzeBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
