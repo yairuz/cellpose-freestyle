@@ -28,6 +28,42 @@ Example notebooks:
 * [test_Cellpose-SAM.ipynb](https://github.com/MouseLand/cellpose/blob/main/notebooks/test_Cellpose-SAM.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MouseLand/cellpose/blob/main/notebooks/test_Cellpose-SAM.ipynb): shows running Cellpose-SAM using example data in 2D and 3D
 * [train_Cellpose-SAM.ipynb](https://github.com/MouseLand/cellpose/blob/main/notebooks/train_Cellpose-SAM.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MouseLand/cellpose/blob/main/notebooks/train_Cellpose-SAM.ipynb): train Cellpose-SAM on your own labeled data (also optional example data provided)
 
+## 🔬 Cellpose Freestyle App
+
+**NEW: Natural language interface for cell analysis!** The Cellpose Freestyle app lets you analyze cell images using plain English queries powered by AI.
+
+### Features
+- 🗣️ **Natural Language Queries**: Ask questions like "count the dead cells in this image" or "measure cell sizes"
+- 🤖 **AI Agent**: Uses Claude (Anthropic) to interpret queries and determine optimal cellpose parameters
+- 📊 **Rich Analytics**: Automatic cell counting, size measurements, shape analysis, and more
+- 🖼️ **Visual Results**: Segmentation overlays with color-coded cell outlines
+- 🚀 **Easy to Use**: Web interface with drag-and-drop image upload
+
+### Quick Start
+```bash
+cd app
+./run.sh  # Automated setup and launch
+```
+
+Or manually:
+```bash
+cd app
+pip install -e ..
+pip install -r requirements.txt
+python backend.py
+```
+
+Then open [http://localhost:5000](http://localhost:5000) in your browser.
+
+### Example Queries
+- "Count the cells in this image"
+- "Count the dead cells" (uses lower threshold for dim cells)
+- "Measure cell diameters"
+- "Find only large cells"
+- "Analyze cell shape and roundness"
+
+For full documentation, see [app/README.md](app/README.md).
+
 :triangular_flag_on_post: The Cellpose-SAM model is trained on data that is licensed under **CC-BY-NC**. The Cellpose annotated dataset is also CC-BY-NC.
 
 ### CITATION
