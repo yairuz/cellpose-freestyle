@@ -1,0 +1,18 @@
+# Cellpose Freestyle App Dependencies
+
+# Web framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# Cellpose and dependencies (will be installed from parent directory)
+# cellpose should be installed via: pip install -e ..
+
+# Image processing
+numpy>=1.23.0
+pillow>=9.5.0
+
+# AI agent (Anthropic Claude)
+anthropic>=0.18.0
+
+# Optional: For better performance
+# torch>=2.0.0  (installed with cellpose)

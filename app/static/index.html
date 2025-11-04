@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cellpose Freestyle - AI-Powered Cell Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        #query {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        #query:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .file-upload {
+            border: 3px dashed #e0e0e0;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .file-upload.drag-over {
+            border-color: #667eea;
+            background: #e8e8ff;
+            transform: scale(1.02);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload-text {
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .file-upload-text strong {
+            color: #667eea;
+        }
+
+        .file-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .file-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+        }
+
+        .file-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-preview-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .results h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .task-info {
+            background: #f0f0ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .task-info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .task-info p {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .summary {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .summary h3 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .image-result {
+            margin-bottom: 40px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .image-result h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .image-result img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #c62828;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .examples {
+            background: #fff8e1;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .examples h3 {
+            color: #f57f17;
+            margin-bottom: 10px;
+        }
+
+        .examples ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .examples li {
+            padding: 8px 0;
+            color: #555;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .examples li:hover {
+            color: #667eea;
+        }
+
+        .examples li:before {
+            content: "💡 ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Cellpose Freestyle</h1>
+            <p>AI-powered cell image analysis - Just ask in plain English!</p>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <label for="query">What would you like to know about your cells?</label>
+                <textarea
+                    id="query"
+                    placeholder="e.g., 'Count the dead cells in this image' or 'Measure the sizes of all cells' or 'Show me which cells are touching each other'"
+                ></textarea>
+            </div>
+
+            <div class="examples">
+                <h3>Example queries:</h3>
+                <ul>
+                    <li onclick="setQuery(this)">Count the cells in this image</li>
+                    <li onclick="setQuery(this)">Count the dead cells in this image</li>
+                    <li onclick="setQuery(this)">Measure the diameter of all cells</li>
+                    <li onclick="setQuery(this)">Show me the cell outlines</li>
+                    <li onclick="setQuery(this)">Find only the large cells</li>
+                    <li onclick="setQuery(this)">Analyze cell shape and roundness</li>
+                </ul>
+            </div>
+
+            <div class="input-section">
+                <label>Upload Images</label>
+                <div class="file-upload" id="fileUpload">
+                    <input type="file" id="fileInput" multiple accept="image/*">
+                    <div class="file-upload-text">
+                        <strong>Click to upload</strong> or drag and drop<br>
+                        Supports: PNG, JPEG, TIFF (single or multiple images)
+                    </div>
+                </div>
+                <div class="file-preview" id="filePreview"></div>
+            </div>
+
+            <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+                🚀 Analyze Images
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your images with AI-powered analysis...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+
+        // File upload handling
+        const fileUpload = document.getElementById('fileUpload');
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+
+        fileUpload.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Drag and drop
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('drag-over');
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('drag-over');
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            displayFilePreview();
+        }
+
+        function displayFilePreview() {
+            filePreview.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-preview-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <button class="remove-btn" onclick="removeFile(${index})">×</button>
+                    `;
+                    filePreview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFilePreview();
+        }
+
+        function setQuery(element) {
+            document.getElementById('query').value = element.textContent;
+        }
+
+        async function analyze() {
+            const query = document.getElementById('query').value.trim();
+            const errorDiv = document.getElementById('error');
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+
+            // Reset
+            errorDiv.classList.remove('active');
+            resultsDiv.classList.remove('active');
+            resultsDiv.innerHTML = '';
+
+            // Validate
+            if (!query) {
+                showError('Please enter a query describing what you want to analyze.');
+                return;
+            }
+
+            if (selectedFiles.length === 0) {
+                showError('Please upload at least one image.');
+                return;
+            }
+
+            // Show loading
+            loadingDiv.classList.add('active');
+            analyzeBtn.disabled = true;
+
+            try {
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('query', query);
+                selectedFiles.forEach(file => {
+                    formData.append('images', file);
+                });
+
+                // Send request
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                // Display results
+                displayResults(data);
+
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            } finally {
+                loadingDiv.classList.remove('active');
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+
+            let html = '<h2>📊 Analysis Results</h2>';
+
+            // Task interpretation
+            html += `
+                <div class="task-info">
+                    <h3>🤖 Task Interpretation</h3>
+                    <p><strong>Query:</strong> ${data.query}</p>
+                    <p><strong>Explanation:</strong> ${data.task.explanation}</p>
+                    ${data.task.notes ? `<p><strong>Notes:</strong> ${data.task.notes}</p>` : ''}
+                </div>
+            `;
+
+            // Summary
+            html += `
+                <div class="summary">
+                    <h3>📋 Summary</h3>
+                    <p>${data.summary}</p>
+                </div>
+            `;
+
+            // Individual image results
+            data.results.forEach((result, index) => {
+                html += `
+                    <div class="image-result">
+                        <h4>Image ${index + 1}: ${result.image_name}</h4>
+                        <img src="data:image/png;base64,${result.visualization}" alt="Segmentation result">
+
+                        <div class="metrics">
+                            ${result.cell_count !== undefined ? `
+                                <div class="metric">
+                                    <div class="metric-label">Cells Detected</div>
+                                    <div class="metric-value">${result.cell_count}</div>
+                                </div>
+                            ` : ''}
+
+                            ${result.diameters ? `
+                                <div class="metric">
+                                    <div class="metric-label">Mean Diameter</div>
+                                    <div class="metric-value">${result.diameters.mean.toFixed(1)} px</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Diameter Range</div>
+                                    <div class="metric-value">${result.diameters.min.toFixed(1)} - ${result.diameters.max.toFixed(1)} px</div>
+                                </div>
+                            ` : ''}
+
+                            ${result.compactness ? `
+                                <div class="metric">
+                                    <div class="metric-label">Mean Roundness</div>
+                                    <div class="metric-value">${result.compactness.mean.toFixed(2)}</div>
+                                </div>
+                            ` : ''}
+
+                            ${result.perimeters ? `
+                                <div class="metric">
+                                    <div class="metric-label">Mean Perimeter</div>
+                                    <div class="metric-value">${result.perimeters.mean.toFixed(1)} px</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('active');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+        }
+    </script>
+</body>
+</html>
